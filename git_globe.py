@@ -1,9 +1,9 @@
 import requests
 from urllib import unquote
-from pprint import pprint
 
 github_api_root = "https://api.github.com"
 mapquest_api_root = "http://www.mapquestapi.com/geocoding/v1/address"
+chunk_size = 100
 
 def get_repo_contributors(repo_owner, repo_name, git_globe_config):
 	request_url = '/'.join([github_api_root, "repos",
@@ -47,13 +47,28 @@ def get_coords(location_name, git_globe_config):
 	except IndexError:
 		return None
 
+def chunks(l, n):
+    """ Yield successive n-sized chunks from l.
+    """
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
 # return dictionary of usernames and their location names
 def get_location_names(repo_owner, repo_name, git_globe_config):
     return [(login, get_location_name(login, git_globe_config))
     	for login in get_repo_contributors(repo_owner, repo_name, git_globe_config)]
 
-# return dictionary of usernames and their lat/lon coordinates
+# return dictionary of usernames and their lat/lon coordinates. Splits contributor list
+# to get around mapquest rate limiting
 def get_location_coords(repo_owner, repo_name, git_globe_config):
-	return [(login, get_coords(get_location_name(login, git_globe_config), git_globe_config))
-    	for login in get_repo_contributors(repo_owner, repo_name, git_globe_config)]
+	contributors = get_repo_contributors(repo_owner, repo_name, git_globe_config)
+	if len(contributors) > chunk_size:
+		data = []
+		for chunk in chunks(contributors, chunk_size):
+			data.extend([(login, get_coords(get_location_name(login, git_globe_config), git_globe_config))
+				for login in chunk])
+		return data
+	else:
+		return [(login, get_coords(get_location_name(login, git_globe_config), git_globe_config))
+			for login in contributors]
 
