@@ -1,5 +1,5 @@
 from pprint import pprint
-from git_globe import *
+from git_globe import get_location_coords
 
 git_globe_config = {}
 git_globe_config["oauth_token"] = "eb9f1c1e55be9fdd7daecdd16540b21edcbafce0"
